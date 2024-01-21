@@ -25,7 +25,7 @@ export default function Home() {
     setTeacherId(e.target.value);
   }
 
-  const timetable = []
+  let timetable = []
 
   data?.timetable?.card?.map((card, i) => {
     // -classids
@@ -44,18 +44,64 @@ export default function Home() {
       const period = card["-period"]
       const day = card["-day"]
 
-
       const classrooom = data?.timetable?.classroom?.find(classroom => classroom["-id"] == classroomids)
       const subject = data?.timetable?.subject?.find(subject => subject["-id"] == subjectid)
       const clas = data?.timetable?.class?.find(clas => clas["-id"] == classids)
 
-      timetable.push({ classrooom: classrooom["-name"], subject: subject["-name"], clas: clas["-name"], day, period })
+      timetable.push({
+        classrooom: classrooom["-name"],
+        subject: subject["-name"],
+        period: parseInt(period),
+        clas: clas["-name"],
+        day: parseInt(day),
+      })
     }
   })
-
-  timetable.sort((a, b) => parseInt(a.period) - parseInt(b.period))
-  timetable.sort((a, b) => parseInt(a.day) - parseInt(b.day))
-
+  timetable = timetable
+    .sort((a, b) => a.period - b.period)
+    .sort((a, b) => a.day - b.day)
+    .map((card, i, table) => {
+      // Проверка, Если это не последний элемент массива
+      if (i + 1 !== table.length) {
+        // Если это четное, т.е. 1 урок пары
+        if (card.period % 2) {
+          let nextCard = table[i + 1];
+          if ((nextCard.subject == card.subject) && (nextCard.class == card.class)) {
+            card.endPeriod = 2
+          }
+          else {
+            card.endPeriod = 1
+          }
+        }
+        else {
+          let previosCard = table[i - 1];
+          if (previosCard.endPeriod == 2) {
+            card.endPeriod = 0
+          }
+          else {
+            card.endPeriod = 1
+          }
+        }
+      }
+      else {
+        let previosCard = table[i - 1];
+        if (previosCard.endPeriod == 2) {
+          card.endPeriod = 0
+        }
+        else {
+          card.endPeriod = 1
+        }
+      }
+      return card
+    })
+    .filter((card, i, table) => {
+      if (card.endPeriod == 0) {
+        return false
+      }
+      else {
+        return true
+      }
+    })
 
   return (
 
@@ -71,8 +117,21 @@ export default function Home() {
       </select>
 
       <div className={styles.description}>
-        <ul>
-          {timetable.map((card) => <li>{card.subject} {card.clas} {card.classrooom}</li>)}
+        <ul className={styles.table}>
+          {timetable.map((card, i) => {
+            return <li
+              className={styles.card}
+              key={i + "card"}
+              style={{
+                "gridArea":
+                  `${card.period} / ${card.day + 1} / span ${card.endPeriod} / span 1`
+              }}
+            >
+              <span className={styles.span}>{card.subject}</span>
+              <span>{card.clas}</span>
+              <span>{card.classrooom}</span>
+            </li>
+          })}
         </ul>
       </div>
     </main>
